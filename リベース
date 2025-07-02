@@ -1,0 +1,299 @@
+# 新人エンジニアのためのGit実践ガイド
+
+このガイドでは、開発現場でよく使われるGit操作を実例とともに解説します。「なぜその操作が必要なのか」も含めて理解できるように説明していきます。
+
+## 目次
+
+1. [基本的なブランチ操作](#基本的なブランチ操作)
+2. [マージ vs リベース](#マージ-vs-リベース)
+3. [リバート（取り消し）操作](#リバート取り消し操作)
+4. [よくあるトラブルと解決法](#よくあるトラブルと解決法)
+5. [チーム開発でのベストプラクティス](#チーム開発でのベストプラクティス)
+
+---
+
+## 基本的なブランチ操作
+
+### 新しいブランチの作成からプッシュまで
+
+**シナリオ**: 新機能「ユーザー認証」を開発することになりました。
+
+```bash
+# 1. 現在の状況を確認
+git status
+git branch
+
+# 2. 新しいブランチを作成して切り替え
+git checkout -b feature/user-authentication
+
+# 3. ブランチが正しく作成されたか確認
+git branch
+# * feature/user-authentication ← アスタリスクが現在のブランチ
+
+# 4. 開発作業（ファイル編集など）
+# ...
+
+# 5. 変更をコミット
+git add .
+git commit -m "Add user login functionality"
+
+# 6. 初回プッシュ（リモートブランチを作成）
+git push -u origin feature/user-authentication
+```
+
+**💡 ポイント**: `-u origin` は初回のみ必要。これで以降は `git push` だけでOK！
+
+---
+
+## マージ vs リベース
+
+### マージ（Merge）
+
+**特徴**: 履歴をそのまま保持し、マージコミットを作成
+
+```bash
+# mainブランチに戻る
+git checkout main
+
+# 最新を取得
+git pull origin main
+
+# featureブランチをマージ
+git merge feature/user-authentication
+```
+
+**結果の履歴**:
+```
+A---B---C (feature/user-authentication)
+        /
+D---E---F---M (main) ← Mがマージコミット
+```
+
+**メリット**: 
+- 安全（履歴が残る）
+- チーム開発に適している
+- 作業過程が分かる
+
+### リベース（Rebase）
+
+**特徴**: 履歴を一直線に整理
+
+```bash
+# featureブランチで作業
+git checkout feature/user-authentication
+
+# mainの最新変更を取り込んでリベース
+git rebase main
+```
+
+**結果の履歴**:
+```
+D---E---F---A'---B'---C' (feature/user-authentication)
+        |
+        (main)
+```
+
+**メリット**: 
+- 履歴が綺麗
+- 時系列が分かりやすい
+
+**⚠️ 注意**: プッシュ済みの場合は `git push --force-with-lease` が必要
+
+### どちらを使うべき？
+
+| 状況 | 推奨 | 理由 |
+|------|------|------|
+| チーム開発 | **Merge** | 安全、履歴保持 |
+| 個人開発 | **Rebase** | 履歴が綺麗 |
+| メインブランチへの統合 | **Merge** | トレーサビリティ |
+| 個人ブランチの整理 | **Rebase** | 見た目重視 |
+
+---
+
+## リバート（取り消し）操作
+
+### 通常のコミットを取り消す
+
+**シナリオ**: 「バグを含むコミットを安全に取り消したい」
+
+```bash
+# 取り消したいコミットのハッシュを確認
+git log --oneline
+
+# リバート実行（新しい取り消しコミットを作成）
+git revert abc1234
+```
+
+### マージコミットを取り消す
+
+**シナリオ**: 「間違ってマージしてしまった！」
+
+```bash
+# マージコミットのリバート（親1を基準）
+git revert -m 1 abc1234
+
+# マージコミットのリバート（親2を基準）
+git revert -m 2 abc1234
+```
+
+**💡 重要**: `-m 1` は「メインブランチ側を残す」、`-m 2` は「フィーチャーブランチ側を残す」
+
+### Reset vs Revert の違い
+
+| 操作 | Git Revert | Git Reset |
+|------|------------|-----------|
+| **履歴** | 保持（取り消し記録も残る） | 削除（危険） |
+| **チーム開発** | ✅ 安全 | ❌ 危険 |
+| **用途** | プッシュ済みの修正 | ローカルの修正 |
+
+**ルール**: プッシュ済み → Revert、ローカルのみ → Reset
+
+---
+
+## よくあるトラブルと解決法
+
+### 1. 「コンフリクトが発生した！」
+
+**状況**: マージやリベース時にファイルの競合が発生
+
+```bash
+# コンフリクト発生時の表示例
+Auto-merging src/components/UserAuth.vue
+CONFLICT (content): Merge conflict in src/components/UserAuth.vue
+```
+
+**解決手順**:
+```bash
+# 1. コンフリクトファイルを開いて手動編集
+# <<<<<<< HEAD
+# 現在のブランチのコード
+# =======
+# マージしようとするブランチのコード
+# >>>>>>> feature/user-auth
+
+# 2. 正しいコードに修正後、マーカーを削除
+
+# 3. 修正をステージング
+git add src/components/UserAuth.vue
+
+# 4. マージ完了（リベースの場合は git rebase --continue）
+git commit
+```
+
+### 2. 「間違ったファイルをコミットした！」
+
+```bash
+# 直前のコミットを修正（まだプッシュしていない場合）
+git commit --amend
+
+# 特定のファイルをコミットから除外
+git reset --soft HEAD~1  # コミットを取り消し（変更は保持）
+git reset HEAD unwanted-file.txt  # ファイルをアンステージ
+git commit -m "Corrected commit"  # 再コミット
+```
+
+### 3. 「プッシュできない！」
+
+```bash
+# エラー例: ! [rejected] main -> main (non-fast-forward)
+
+# 解決方法1: プル
+git pull origin main
+
+# 解決方法2: リベースでプル
+git pull --rebase origin main
+```
+
+---
+
+## チーム開発でのベストプラクティス
+
+### ブランチ命名規則
+
+```bash
+# 機能開発
+feature/user-authentication
+feature/payment-integration
+
+# バグ修正
+bugfix/login-error
+hotfix/critical-security-issue
+
+# リリース準備
+release/v1.2.0
+```
+
+### コミットメッセージの書き方
+
+```bash
+# ❌ 悪い例
+git commit -m "fix"
+git commit -m "update code"
+
+# ✅ 良い例
+git commit -m "Add user email validation to signup form"
+git commit -m "Fix memory leak in image processing module"
+git commit -m "Update README with new installation instructions"
+```
+
+**コミットメッセージのルール**:
+1. **動詞で始める**（Add, Fix, Update, Remove）
+2. **50文字以内**で簡潔に
+3. **何をしたか**を明確に書く
+
+### プルリクエスト前のチェックリスト
+
+```bash
+# 1. 最新のmainブランチに追従
+git checkout main
+git pull origin main
+git checkout feature/your-branch
+git rebase main  # または git merge main
+
+# 2. テストの実行
+npm test  # またはプロジェクトのテストコマンド
+
+# 3. コードフォーマット
+npm run lint:fix  # またはフォーマッターの実行
+
+# 4. プッシュ
+git push origin feature/your-branch
+```
+
+---
+
+## まとめ
+
+### 覚えておくべき重要なポイント
+
+1. **プッシュ後は Revert、プッシュ前は Reset**
+2. **チーム開発では Merge、個人整理では Rebase**
+3. **コンフリクトは慌てず手動解決**
+4. **コミットメッセージは未来の自分への手紙**
+5. **困ったときは `git status` で現状確認**
+
+### 緊急時のコマンド
+
+```bash
+# 作業を一時保存
+git stash
+
+# 作業を復元
+git stash pop
+
+# 現在の状況確認
+git status
+
+# 履歴確認
+git log --oneline --graph
+
+# 操作を取り消したい時
+git reflog  # 操作履歴を確認
+git reset --hard HEAD@{2}  # 特定の時点に戻る
+```
+
+**🚨 最重要**: 分からない時は必ずチームメンバーに相談しましょう！
+
+---
+
+このガイドを参考に、実際のプロジェクトで少しずつ慣れていきましょう。Gitは最初は複雑に見えますが、基本操作を覚えれば強力な武器になります！
