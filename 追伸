@@ -1,0 +1,268 @@
+Gitの追跡機能について、明るく図解で説明しますね！🔍
+
+Gitの**追跡機能**とは、どのファイルを「Gitで管理する対象」にするかを決める仕組みです！
+
+## 🎯 追跡機能の基本概念
+
+```
+🏠 あなたのプロジェクトフォルダ
+├── 📄 index.html     ← 👀 Gitが見てる（追跡中）
+├── 🎨 style.css      ← 👀 Gitが見てる（追跡中）
+├── 🗂️ .env          ← 🙈 Gitが無視してる（追跡外）
+├── 📁 node_modules/  ← 🙈 Gitが無視してる（追跡外）
+└── 🆕 newfile.txt    ← 🤔 まだ決まってない（未追跡）
+```
+
+## 🔍 ファイルの状態
+
+Gitでは、ファイルを以下の状態で分類しています：
+
+### 1️⃣ 📋 追跡中ファイル（Tracked）
+```
+✅ Gitが管理してるファイル
+┌─────────────────────────────┐
+│ 📄 変更なし（Up to date）      │
+│ 🔄 変更あり（Modified）        │
+│ 📦 ステージ済み（Staged）      │
+└─────────────────────────────┘
+```
+
+### 2️⃣ 🆕 未追跡ファイル（Untracked）
+```
+❓ Gitがまだ知らないファイル
+┌─────────────────────────────┐
+│ 🆕 新しく作ったファイル        │
+│ 📁 新しいフォルダ             │
+│ 🔽 ダウンロードしたファイル    │
+└─────────────────────────────┘
+```
+
+### 3️⃣ 🙈 無視ファイル（Ignored）
+```
+🚫 Gitが意図的に無視するファイル
+┌─────────────────────────────┐
+│ 🗂️ .env（環境変数）          │
+│ 📁 node_modules/（依存関係）   │
+│ 🔧 .DS_Store（システム）      │
+└─────────────────────────────┘
+```
+
+## 🎪 追跡状態の確認方法
+
+```bash
+# 📊 現在の状況をチェック
+git status
+```
+
+**📱 git status の見方**
+```
+🎯 追跡状態レポート
+
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:          ← 📦 ステージエリア
+  (use "git restore --staged <file>..." to unstage)
+        new file:   🆕 feature.js
+
+Changes not staged for commit:    ← 🔄 変更ありファイル
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes to working directory)
+        modified:   📄 index.html
+
+Untracked files:                  ← 🤔 未追跡ファイル
+  (use "git add <file>..." to include in what will be committed)
+        🆕 newpage.html
+        📁 temp/
+```
+
+## 🎨 追跡の開始・停止方法
+
+### 🚀 追跡開始（ファイルをGitに登録）
+
+```bash
+# 🎯 特定ファイルを追跡開始
+git add newfile.txt
+
+# 📁 フォルダごと追跡開始
+git add src/
+
+# 🌟 全部まとめて追跡開始
+git add .
+```
+
+**🎭 追跡開始の流れ**
+```
+🤔 未追跡        🎯 git add        📦 ステージ済み      ✅ コミット後
+┌─────────┐    ┌─────────┐      ┌─────────────┐    ┌─────────┐
+│ newfile │ →  │ 追跡開始  │  →   │ 次回コミット  │ →  │ 追跡中   │
+│ 🆕      │    │ 🎪       │      │ 待ち 📦      │    │ ✅      │
+└─────────┘    └─────────┘      └─────────────┘    └─────────┘
+```
+
+### 🛑 追跡停止（ファイルをGitから除外）
+
+```bash
+# 🗑️ ファイルを削除して追跡停止
+git rm unwanted.txt
+
+# 📁 ファイルは残して追跡だけ停止
+git rm --cached secret.txt
+
+# 📂 フォルダごと追跡停止
+git rm -r --cached logs/
+```
+
+## 🙈 .gitignore で無視設定
+
+### 📝 .gitignoreファイルの書き方
+
+```bash
+# 🗂️ 環境変数ファイル
+.env
+.env.local
+
+# 📁 依存関係フォルダ
+node_modules/
+vendor/
+
+# 🔧 システムファイル
+.DS_Store
+Thumbs.db
+
+# 📋 ログファイル
+*.log
+logs/
+
+# 🏗️ ビルド結果
+dist/
+build/
+*.min.js
+```
+
+**🎯 .gitignore のパターン**
+```
+📝 パターン例                🎭 何を無視するか
+├── *.log                  → 📄 全ての.logファイル
+├── temp/                  → 📁 tempフォルダ全体
+├── config/*.json          → 📋 configフォルダの.jsonファイル
+├── !important.log         → ❗ important.logは例外で追跡
+└── **/*.tmp               → 🌍 全サブフォルダの.tmpファイル
+```
+
+## 🎪 実践シナリオ
+
+### 🎬 シーン1: 新しいプロジェクト開始
+
+```bash
+# 📁 プロジェクト作成
+mkdir my-project && cd my-project
+git init
+
+# 📝 .gitignoreを先に作成
+echo "node_modules/" > .gitignore
+echo ".env" >> .gitignore
+
+# 🎯 ファイルを追跡開始
+git add .gitignore
+git add index.html
+git add style.css
+git commit -m "🎉 プロジェクト開始"
+```
+
+### 🎬 シーン2: 機密ファイルを誤って追跡してしまった
+
+```bash
+# 😱 うっかり.envを追跡してしまった！
+git add .env
+git commit -m "設定追加"
+
+# 🛑 追跡を停止（ファイルは残す）
+git rm --cached .env
+
+# 🙈 今後は無視するよう設定
+echo ".env" >> .gitignore
+git add .gitignore
+git commit -m "🔒 環境変数ファイルを無視設定"
+```
+
+### 🎬 シーン3: 大量のファイルを選択的に追跡
+
+```bash
+# 📊 現状確認
+git status
+
+# 🎯 対話的に選択
+git add -p  # 変更部分を選択
+
+# 📁 特定の種類だけ追跡
+git add "*.js"  # JSファイルのみ
+git add "src/"  # srcフォルダのみ
+```
+
+## 💡 よくある質問 Q&A
+
+### Q1: 🤔 「追跡中」と「ステージ済み」の違いは？
+
+```
+📊 ファイルの状態遷移
+
+🤔 未追跡 → 🎯 git add → 📦 ステージ → 🎯 git commit → ✅ 追跡中
+                ↑                              ↓
+            🔄 変更あり ← 🎨 ファイル編集 ←─────────────┘
+                ↓
+            🎯 git add
+                ↓
+            📦 ステージ済み
+```
+
+### Q2: 😅 間違って追跡してしまったら？
+
+```bash
+# 🛑 最新の追加を取り消し
+git reset HEAD filename
+
+# 🗑️ 完全に追跡停止
+git rm --cached filename
+
+# 🔄 作業ディレクトリの変更も取り消し
+git checkout -- filename
+```
+
+### Q3: 🔍 どのファイルが追跡されてるか確認したい
+
+```bash
+# 📋 追跡中ファイル一覧
+git ls-files
+
+# 🙈 無視されているファイル確認
+git status --ignored
+
+# 🔍 特定ファイルの状態確認
+git status filename
+```
+
+## 🚀 追跡機能チートシート
+
+| 🎯 コマンド | 🎭 やること |
+|------------|------------|
+| `git status` | 📊 全体状況確認 |
+| `git add <file>` | 🎯 追跡開始 |
+| `git add .` | 🌟 全ファイル追跡 |
+| `git rm <file>` | 🗑️ 削除＋追跡停止 |
+| `git rm --cached <file>` | 📁 ファイル残して追跡停止 |
+| `git ls-files` | 📋 追跡中ファイル一覧 |
+| `git status --ignored` | 🙈 無視ファイル表示 |
+
+**🎨 状態別の対処法**
+```
+😎 理想の状態を目指そう！
+
+🤔 未追跡      → git add で 📦 ステージへ
+🔄 変更あり    → git add で 📦 ステージへ  
+📦 ステージ済み → git commit で ✅ 確定
+🙈 無視したい   → .gitignore に追加
+😱 誤追跡      → git rm --cached で解除
+```
+
+追跡機能をマスターして、効率的なGit管理を楽しみましょう！🎉
